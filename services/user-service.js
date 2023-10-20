@@ -4,9 +4,10 @@ const uuid = require('uuid')
 const mailService = require('./mail-service')
 const TokenService = require('./token-service')
 const tokenService = require('./token-service')
+const UserDto = require('../dtos/user-dto')
 
 class UserService {
-  async regitration(email, password) {
+  async registration(email, password) {
     const candidate = await UserModel.findOne({ email })
     if (candidate) {
       throw new Error(`User with this email exist`)
@@ -19,7 +20,12 @@ class UserService {
       activationLink
     })
     await mailService.sendActivationMail(email, activationLink)
-    const tokens = tokenService.generateToken()
+
+    const userDto = new UserDto(user)
+    const tokens = tokenService.generateToken({ ...UserDto })
+    await tokenService.saveToken(userDto.id, tokens.refreshToken)
+
+    return { ...tokens, user: userDto }
   }
 }
 
