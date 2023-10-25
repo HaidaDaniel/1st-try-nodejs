@@ -10,7 +10,7 @@ class UserService {
   async registration(email, password) {
     const candidate = await UserModel.findOne({ email })
     if (candidate) {
-      throw ApiError.BadRequest(`User with this email exist`)
+      throw ApiError.BadRequest(`User with this email ${email} exist`)
     }
     const hashPassword = await bcrypt.hash(password, 3)
     const activationLink = uuid.v4()
@@ -21,11 +21,11 @@ class UserService {
     })
     await mailService.sendActivationMail(
       email,
-      `${process.env.API_URL}/api/activation/${activationLink}`
+      `${process.env.API_URL}/api/activate/${activationLink}`
     )
 
     const userDto = new UserDto(user)
-    const tokens = tokenService.generateToken({ ...UserDto })
+    const tokens = tokenService.generateTokens({ ...userDto })
     await tokenService.saveToken(userDto.id, tokens.refreshToken)
 
     return { ...tokens, user: userDto }
@@ -37,14 +37,17 @@ class UserService {
     if (!user) {
       throw ApiError.BadRequest('bad link activation')
     }
-
     user.isActivated = true
     await user.save()
   }
+
   async login(email, password) {
     const user = await UserModel.findOne({ email })
     if (!user) {
       throw ApiError.BadRequest('user with this email not found')
+    }
+    if (!user.isActivated) {
+      throw ApiError.BadRequest('User is not activated')
     }
     const isPassEquals = await bcrypt.compare(password, user.password)
     if (!isPassEquals) {
@@ -56,10 +59,12 @@ class UserService {
     await tokenService.saveToken(userDto.id, tokens.refreshToken)
     return { ...tokens, user: userDto }
   }
+
   async logout(refreshToken) {
     const token = await tokenService.removeToken(refreshToken)
     return token
   }
+
   async refresh(refreshToken) {
     if (!refreshToken) {
       throw ApiError.UnauthorizedError()
@@ -76,6 +81,7 @@ class UserService {
     await tokenService.saveToken(userDto.id, tokens.refreshToken)
     return { ...tokens, user: userDto }
   }
+
   async getAllUsers() {
     const users = await UserModel.find()
     return users
