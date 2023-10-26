@@ -65,7 +65,7 @@ router.post(
 
       const comment = new Comment({
         product: productId,
-        author: userId,
+        authorID: userId,
         text,
         rating
       })

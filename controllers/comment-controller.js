@@ -7,9 +7,7 @@ class CommentController {
       const comments = await Comment.find({ product: productId })
       res.json(comments)
     } catch (e) {
-      res
-        .status(500)
-        .json({ message: 'Ошибка при получении комментариев товара' })
+      res.status(500).json({ message: 'Error get comments' })
     }
   }
 }
@@ -18,17 +16,15 @@ exports.createComment = async (req, res) => {
     const { productId } = req.params
     const { text } = req.body
 
-    // Проверка, существует ли товар с указанным productId
     const product = await Product.findById(productId)
 
     if (!product) {
-      return res.status(404).json({ message: 'Товар не найден' })
+      return res.status(404).json({ message: 'Product not found' })
     }
 
-    // Создание нового комментария
     const comment = new Comment({
       product: productId,
-      author: req.user.userId, // Используйте ID авторизованного пользователя
+      author: req.user.userId,
       text
     })
 
@@ -36,7 +32,7 @@ exports.createComment = async (req, res) => {
     res.status(201).json(comment)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ message: 'Ошибка при создании комментария' })
+    res.status(500).json({ message: 'Error making comment' })
   }
 }
 module.exports = new CommentController()
